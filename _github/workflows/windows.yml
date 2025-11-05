@@ -1,0 +1,57 @@
+name: Windows EXE build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      CI: true
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+      ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Show Node & NPM versions
+        run: |
+          node -v
+          npm -v
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build web (Vite) -> dist/
+        run: npm run build
+
+      - name: List dist after Vite
+        run: dir dist
+        shell: cmd
+
+      - name: Show electron-builder version
+        run: npx --yes electron-builder --version
+
+      - name: Build Windows installer (electron-builder)
+        run: npx --yes electron-builder build --win nsis --publish never --config.electronVersion=30.0.0
+
+      - name: Show dist after electron-builder
+        run: dir dist && dir dist\\win-* || ver
+        shell: cmd
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kalkulator-Windows-Installer
+          path: |
+            dist/*.exe
+            dist/*.msi
+            dist/win-*/**/*
